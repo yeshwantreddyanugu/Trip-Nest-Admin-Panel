@@ -19,7 +19,7 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter basename="/trip-website-admin-panel">
+      <BrowserRouter basename="/Trip-Nest-Admin-Panel">
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/users" element={<UserManagement />} />

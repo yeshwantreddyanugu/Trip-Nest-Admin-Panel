@@ -14,7 +14,7 @@ export default defineConfig(({ mode }) => ({
     mode === 'development' &&
     componentTagger(),
   ].filter(Boolean),
-  base: "/trip-website-admin-panel/",
+  base: "/Trip-Nest-Admin-Panel/",
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
