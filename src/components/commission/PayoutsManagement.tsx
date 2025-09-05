@@ -17,7 +17,7 @@ import {
 import { Search, Check, Clock, DollarSign } from 'lucide-react';
 
 // ✅ Backend Base URL
-const base_url = 'https://your-ngrok-url.ngrok-free.app/api';
+const base_url = 'https://hbr.lytortech.com/api';
 
 interface Payout {
   id: string;

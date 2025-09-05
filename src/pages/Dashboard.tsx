@@ -24,7 +24,7 @@ const Dashboard = () => {
   useEffect(() => {
     const fetchDashboardStats = async () => {
       try {
-        const response = await fetch('https://a0bd-2401-4900-1cb4-2028-78a2-eabb-c0cc-977d.ngrok-free.app/api/dashboard/stats', {
+        const response = await fetch('https://hbr.lytortech.com/api/dashboard/stats', {
           headers: {
             'ngrok-skip-browser-warning': 'true'
           }

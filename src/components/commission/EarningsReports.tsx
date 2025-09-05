@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Download, FileText, Calendar } from 'lucide-react';
 
 // ✅ Replace with your actual backend URL
-const base_url = 'https://your-ngrok-url.ngrok-free.app/api';
+const base_url = 'https://hbr.lytortech.com/api';
 
 const EarningsReports = () => {
   const [reportType, setReportType] = useState<'daily' | 'weekly' | 'monthly' | 'custom'>('monthly');

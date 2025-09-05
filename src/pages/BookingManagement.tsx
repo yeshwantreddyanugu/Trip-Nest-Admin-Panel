@@ -116,7 +116,7 @@ const BookingManagement = () => {
   const [actionBooking, setActionBooking] = useState<Booking | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const base_url = 'https://a0bd-2401-4900-1cb4-2028-78a2-eabb-c0cc-977d.ngrok-free.app/api';
+  const base_url = 'https://hbr.lytortech.com/api';
 
   // Load bookings from backend
   const loadBookings = async (page: number = currentPage) => {

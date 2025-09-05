@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { DollarSign, Users, Clock, TrendingUp, Calendar } from 'lucide-react';
 
 // ✅ Backend base URL
-const base_url = 'https://your-ngrok-url.ngrok-free.app/api'; // Replace this with your real endpoint
+const base_url = 'https://hbr.lytortech.com/api'; // Replace this with your real endpoint
 
 interface EarningsData {
   totalPlatformEarnings: number;

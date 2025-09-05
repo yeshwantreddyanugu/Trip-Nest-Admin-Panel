@@ -28,7 +28,7 @@ interface PropertyFormModalProps {
 }
 
 const propertyTypes = ['Hotel', 'Guest House', 'Resort', 'Other'];
-const API_BASE_URL = 'https://a0bd-2401-4900-1cb4-2028-78a2-eabb-c0cc-977d.ngrok-free.app/api/v1/hotels';
+const API_BASE_URL = 'https://hbr.lytortech.com/api/v1/hotels';
 
 const PropertyFormModal: React.FC<PropertyFormModalProps> = ({
   isOpen,

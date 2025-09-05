@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Edit, Check, X, Search } from 'lucide-react';
 
 // ✅ Backend base URL
-const base_url = 'https://your-ngrok-url.ngrok-free.app/api'; // Replace this with your actual backend base URL
+const base_url = 'https://hbr.lytortech.com/api'; // Replace this with your actual backend base URL
 
 interface CommissionItem {
   id: string;

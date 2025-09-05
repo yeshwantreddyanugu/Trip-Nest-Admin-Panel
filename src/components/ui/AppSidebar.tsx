@@ -27,9 +27,9 @@ const Sidebar = () => {
     { icon: Car, label: 'Vehicle Partners', href: '/vehicles' },
     { icon: Calendar, label: 'Bookings', href: '/bookings' },
     { icon: DollarSign, label: 'Commission & Earnings', href: '/commission' },
-    { icon: FileText, label: 'CMS Management', href: '/cms' },
-    { icon: Bell, label: 'Notifications', href: '/notifications' },
-    { icon: BarChart3, label: 'Reports & Analytics', href: '/reports' },
+    { icon: FileText, label: 'Farms', href: '/farms' },
+    { icon: Bell, label: 'Farm Commssions', href: '/farmCommssions' },
+    // { icon: BarChart3, label: 'Reports & Analytics', href: '/reports' },
     { icon: Settings, label: 'Settings & Roles', href: '/settings' }
   ];
 
