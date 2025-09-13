@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/components/ui/sonner';
+import { X } from 'lucide-react';
 import axios from 'axios';
 
 interface PropertyFormModalProps {
@@ -52,8 +53,9 @@ const PropertyFormModal: React.FC<PropertyFormModalProps> = ({
     status: string;
     bookings: number;
     revenue: number;
-    minPrice: number;
-    maxPrice: number;
+    minPrice: string;
+    maxPrice: string;
+    thumbnail: string;
   }>({
     id: null,
     name: '',
@@ -70,37 +72,48 @@ const PropertyFormModal: React.FC<PropertyFormModalProps> = ({
     status: 'Pending',
     bookings: 0,
     revenue: 0,
-    minPrice: 0,
-    maxPrice: 0,
+    minPrice: '',
+    maxPrice: '',
+    thumbnail: '',
   });
 
-
-  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
+  const [thumbnailFiles, setThumbnailFiles] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
+    console.log('PropertyFormModal useEffect triggered');
+    console.log('Property data received:', property);
+
     if (property) {
+      console.log('Editing existing property, populating form...');
       setFormData({
         id: property.id,
-        name: property.name,
-        address: property.address,
-        city: property.city,
-        state: property.state,
-        country: property.country,
-        zipCode: property.zipCode,
-        type: property.type,
-        rating: property.rating,
-        description: property.description,
-        amenities: Array.isArray(property.amenities) ? property.amenities.join(', ') : '',
-        admin: property.admin,
-        status: property.status,
-        bookings: property.bookings,
-        revenue: property.revenue,
-        minPrice: property.minPrice ?? 0,
-        maxPrice: property.maxPrice ?? 0,
-
+        name: property.name || '',
+        address: property.address || '',
+        city: property.city || '',
+        state: property.state || '',
+        country: property.country || '',
+        zipCode: property.zipCode || '',
+        type: property.type || '',
+        rating: property.rating || 4.0,
+        description: property.description || '',
+        amenities: Array.isArray(property.amenities) ? property.amenities.join(', ') : (property.amenities || ''),
+        admin: property.admin || '',
+        status: property.status || 'Pending',
+        bookings: property.bookings || 0,
+        revenue: property.revenue || 0,
+        minPrice: (property.minPrice && property.minPrice > 0) ? property.minPrice.toString() : '',
+        maxPrice: (property.maxPrice && property.maxPrice > 0) ? property.maxPrice.toString() : '',
+        thumbnail: property.thumbnail || '',
       });
+
+      if (property.thumbnail) {
+        setImagePreviews([property.thumbnail]);
+        console.log('Set existing image preview:', property.thumbnail);
+      }
     } else {
+      console.log('Adding new property, resetting form...');
       setFormData({
         id: null,
         name: '',
@@ -117,18 +130,107 @@ const PropertyFormModal: React.FC<PropertyFormModalProps> = ({
         status: 'Pending',
         bookings: 0,
         revenue: 0,
-        minPrice: 0,
-        maxPrice: 0,
+        minPrice: '',
+        maxPrice: '',
+        thumbnail: '',
+      });
+      setImagePreviews([]);
+    }
+
+    setThumbnailFiles([]);
+  }, [property]);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    console.log('Selected files:', files.map(f => f.name));
+
+    if (files.length > 0) {
+      setThumbnailFiles(files);
+
+      const newPreviews: string[] = [];
+      let loadedCount = 0;
+
+      files.forEach((file, index) => {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          if (event.target?.result) {
+            newPreviews[index] = event.target.result as string;
+            loadedCount++;
+
+            if (loadedCount === files.length) {
+              setImagePreviews([...newPreviews]);
+              console.log(`Created previews for ${files.length} images`);
+            }
+          }
+        };
+        reader.onerror = () => {
+          console.error(`Error reading file: ${file.name}`);
+          loadedCount++;
+          if (loadedCount === files.length) {
+            setImagePreviews([...newPreviews.filter(Boolean)]);
+          }
+        };
+        reader.readAsDataURL(file);
       });
     }
-    setThumbnailFile(null);
-  }, [property]);
+  };
+
+  const removeImagePreview = (indexToRemove: number) => {
+    console.log(`Removing image preview at index ${indexToRemove}...`);
+
+    const updatedFiles = [...thumbnailFiles];
+    const updatedPreviews = [...imagePreviews];
+
+    updatedFiles.splice(indexToRemove, 1);
+    updatedPreviews.splice(indexToRemove, 1);
+
+    setThumbnailFiles(updatedFiles);
+    setImagePreviews(updatedPreviews);
+
+    console.log(`Remaining files: ${updatedFiles.length}`);
+    console.log(`Remaining previews: ${updatedPreviews.length}`);
+
+    if (updatedFiles.length === 0 && property?.thumbnail) {
+      setImagePreviews([property.thumbnail]);
+      console.log('Reverted to original image');
+    }
+
+    if (updatedFiles.length === 0) {
+      const fileInput = document.getElementById('thumbnail') as HTMLInputElement;
+      if (fileInput) {
+        fileInput.value = '';
+      }
+    }
+  };
+
+  const removeAllImagePreviews = () => {
+    console.log('Removing all image previews...');
+    setThumbnailFiles([]);
+
+    if (property?.thumbnail) {
+      setImagePreviews([property.thumbnail]);
+      console.log('Reverted to existing image');
+    } else {
+      setImagePreviews([]);
+      console.log('Cleared all image previews');
+    }
+
+    const fileInput = document.getElementById('thumbnail') as HTMLInputElement;
+    if (fileInput) {
+      fileInput.value = '';
+    }
+  };
+
+  // Replace the problematic section in your handleSubmit function around line 312
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
 
-    // Validate required fields
+    console.log('Property form submission started...');
+    console.log('Current form data:', formData);
+    console.log('Selected files:', thumbnailFiles.map(f => f.name));
+
     if (
       !formData.name ||
       !formData.address ||
@@ -136,13 +238,20 @@ const PropertyFormModal: React.FC<PropertyFormModalProps> = ({
       !formData.type ||
       !formData.admin
     ) {
+      console.error('Required fields missing');
       toast.error('Please fill in all required fields');
       setIsSubmitting(false);
       return;
     }
 
+    if (!property && thumbnailFiles.length === 0 && imagePreviews.length === 0) {
+      console.error('No image selected for new property');
+      toast.error('Please select at least one image for the property');
+      setIsSubmitting(false);
+      return;
+    }
+
     try {
-      // Prepare hotel data (with amenities as string)
       const hotelData = {
         id: formData.id ?? null,
         name: formData.name,
@@ -154,20 +263,19 @@ const PropertyFormModal: React.FC<PropertyFormModalProps> = ({
         type: formData.type,
         rating: formData.rating,
         description: formData.description,
-        amenities: formData.amenities, // Kept as string
+        amenities: formData.amenities,
         admin: formData.admin,
         status: formData.status,
         bookings: formData.bookings,
         revenue: formData.revenue,
-        minPrice: formData.minPrice,
-        maxPrice: formData.maxPrice,
-
+        minPrice: formData.minPrice ? parseFloat(formData.minPrice) : 0,
+        maxPrice: formData.maxPrice ? parseFloat(formData.maxPrice) : 0,
       };
 
-      // Create FormData payload
+      console.log('Prepared hotel data:', hotelData);
+
       const formPayload = new FormData();
 
-      // Append hotel data as JSON blob
       formPayload.append(
         'hotel',
         new Blob([JSON.stringify(hotelData)], {
@@ -175,18 +283,24 @@ const PropertyFormModal: React.FC<PropertyFormModalProps> = ({
         })
       );
 
-      // Append image file if exists
-      if (thumbnailFile) {
-        formPayload.append('image', thumbnailFile);
-      }
-
-      // Debug output
-      console.log('📤 Submission payload:', {
-        hotel: hotelData,
-        image: thumbnailFile ? thumbnailFile.name : 'No image'
+      thumbnailFiles.forEach((file, index) => {
+        formPayload.append('image', file);
+        console.log(`Appended image ${index + 1}:`, file.name);
       });
 
-      // Send to backend
+      console.log('FormData contents:');
+      for (const [key, value] of formPayload.entries()) {
+        if (value instanceof File) {
+          console.log(`${key}: [File] ${value.name} (${value.size} bytes)`);
+        } else if (value instanceof Blob) {
+          console.log(`${key}: [Blob] ${value.type}`);
+        } else {
+          console.log(`${key}:`, value);
+        }
+      }
+
+      console.log('Sending request to:', API_BASE_URL);
+
       const response = await axios.post(API_BASE_URL, formPayload, {
         headers: {
           'Content-Type': 'multipart/form-data',
@@ -194,23 +308,75 @@ const PropertyFormModal: React.FC<PropertyFormModalProps> = ({
         }
       });
 
-      // Handle success
-      const isEdit = !!formData.id;
-      toast.success(isEdit ? 'Property updated successfully!' : 'Property created successfully!');
+      console.log('Backend response status:', response.status);
+      console.log('Backend response data:', response.data);
+
+      // FIX: Use 'property' instead of undefined 'isEdit' variable
+      const isEditMode = !!property; // This determines if we're editing or creating
+      const successMessage = isEditMode ? 'Property updated successfully!' : 'Property created successfully!';
+
+      console.log(successMessage);
+      toast.success(successMessage);
+
+      if (response.status >= 200 && response.status < 300) {
+        console.log('Scheduling page reload in 2 seconds...');
+        toast.success('Page will reload in 2 seconds to refresh data...');
+
+        setTimeout(() => {
+          console.log('Executing page reload now...');
+          window.location.reload();
+        }, 2000);
+      }
 
       onSave(response.data);
       onClose();
     } catch (error) {
-      console.error('Submission error:', error);
-      toast.error('Failed to save hotel');
+      console.error('Property submission error:', error);
+
+      if (axios.isAxiosError(error)) {
+        const status = error.response?.status;
+        const responseData = error.response?.data;
+
+        console.error('Response status:', status);
+        console.error('Response data:', responseData);
+        console.error('Response headers:', error.response?.headers);
+
+        // Parse nested error message if present
+        let errorMessage = 'Failed to save property';
+
+        if (responseData?.data && typeof responseData.data === 'string') {
+          try {
+            const nestedData = JSON.parse(responseData.data);
+            errorMessage = nestedData.message || responseData.message || errorMessage;
+          } catch {
+            errorMessage = responseData.message || errorMessage;
+          }
+        } else if (responseData?.message) {
+          errorMessage = responseData.message;
+        }
+
+        // Handle specific error cases
+        if (errorMessage.includes('Hotel not found for update')) {
+          console.error('UPDATE ERROR: The hotel ID does not exist in the backend');
+          console.error('Attempted ID:', formData.id);
+          console.error('Suggestion: This might be a new property that should be created instead');
+
+          toast.error('Property not found for update. Please try creating a new property instead.');
+        } else if (status === 400) {
+          console.error('BAD REQUEST: Check the data format and required fields');
+          toast.error(`Bad Request: ${errorMessage}`);
+        } else {
+          toast.error(`Error (${status}): ${errorMessage}`);
+        }
+      } else {
+        console.error('Non-Axios error:', error);
+        toast.error('Failed to save property');
+      }
     } finally {
       setIsSubmitting(false);
+      console.log('Form submission completed');
     }
   };
-
-
-
-
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -355,8 +521,10 @@ const PropertyFormModal: React.FC<PropertyFormModalProps> = ({
                 id="minPrice"
                 type="number"
                 value={formData.minPrice}
-                onChange={(e) => setFormData(prev => ({ ...prev, minPrice: parseInt(e.target.value) || 0 }))}
+                onChange={(e) => setFormData(prev => ({ ...prev, minPrice: e.target.value }))}
                 min="0"
+                step="0.01"
+                placeholder="Enter minimum price"
               />
             </div>
             <div>
@@ -365,26 +533,82 @@ const PropertyFormModal: React.FC<PropertyFormModalProps> = ({
                 id="maxPrice"
                 type="number"
                 value={formData.maxPrice}
-                onChange={(e) => setFormData(prev => ({ ...prev, maxPrice: parseInt(e.target.value) || 0 }))}
+                onChange={(e) => setFormData(prev => ({ ...prev, maxPrice: e.target.value }))}
                 min="0"
+                step="0.01"
+                placeholder="Enter maximum price"
               />
             </div>
           </div>
 
+          <div className="space-y-4">
+            <Label htmlFor="thumbnail">Property Images {!property && '*'}</Label>
 
-          <div>
-            <Label htmlFor="thumbnail">Thumbnail Image {!property && '*'}</Label>
+            {imagePreviews && imagePreviews.length > 0 && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600">
+                    {imagePreviews.length} image{imagePreviews.length > 1 ? 's' : ''} selected
+                  </span>
+                  {imagePreviews.length > 1 && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={removeAllImagePreviews}
+                    >
+                      Remove All
+                    </Button>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                  {imagePreviews.map((preview, index) => {
+                    if (!preview) return null;
+                    return (
+                      <div key={`preview-${index}`} className="relative group">
+                        <img
+                          src={preview}
+                          alt={`Property preview ${index + 1}`}
+                          className="w-full h-24 object-cover rounded-lg border hover:shadow-md transition-shadow"
+                          onError={(e) => {
+                            console.error('Error loading image preview at index:', index);
+                            e.currentTarget.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"%3E%3Crect width="100" height="100" fill="%23f0f0f0"/%3E%3Ctext x="50" y="50" text-anchor="middle" dy=".3em" font-family="Arial" font-size="14" fill="%23666"%3EImage Error%3C/text%3E%3C/svg%3E';
+                          }}
+                        />
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="sm"
+                          className="absolute -top-2 -right-2 h-6 w-6 p-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={() => removeImagePreview(index)}
+                        >
+                          <X size={12} />
+                        </Button>
+                        <div className="absolute bottom-1 left-1 bg-black bg-opacity-60 text-white text-xs px-2 py-1 rounded">
+                          {index + 1}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             <Input
               id="thumbnail"
               type="file"
               accept="image/*"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) setThumbnailFile(file);
-              }}
-              required={!property}
+              multiple
+              onChange={handleFileChange}
+              required={!property && (!imagePreviews || imagePreviews.length === 0)}
             />
-            <p className="text-sm text-gray-500 mt-1">Upload a JPEG/PNG image</p>
+            <p className="text-sm text-gray-500">
+              {property
+                ? "Select new images to replace existing ones (optional)"
+                : "Select one or more images for the property"
+              }
+            </p>
           </div>
 
           {property && (
@@ -405,8 +629,9 @@ const PropertyFormModal: React.FC<PropertyFormModalProps> = ({
                   id="revenue"
                   type="number"
                   value={formData.revenue}
-                  onChange={(e) => setFormData(prev => ({ ...prev, revenue: parseInt(e.target.value) || 0 }))}
+                  onChange={(e) => setFormData(prev => ({ ...prev, revenue: parseFloat(e.target.value) || 0 }))}
                   min="0"
+                  step="0.01"
                 />
               </div>
             </div>

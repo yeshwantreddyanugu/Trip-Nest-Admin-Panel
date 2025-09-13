@@ -22,13 +22,13 @@ const Sidebar = () => {
 
   const menuItems = [
     { icon: LayoutDashboard, label: 'Dashboard', href: '/' },
-    { icon: Users, label: 'User Management', href: '/users' },
+    // { icon: Users, label: 'User Management', href: '/users' },
     { icon: Building, label: 'Properties', href: '/properties' },
     { icon: Car, label: 'Vehicle Partners', href: '/vehicles' },
     { icon: Calendar, label: 'Bookings', href: '/bookings' },
     { icon: DollarSign, label: 'Commission & Earnings', href: '/commission' },
     { icon: FileText, label: 'Farms', href: '/farms' },
-    { icon: Bell, label: 'Farm Commssions', href: '/farmCommssions' },
+    { icon: Bell, label: 'Farm Commissions', href: '/farmCommissions' },
     // { icon: BarChart3, label: 'Reports & Analytics', href: '/reports' },
     { icon: Settings, label: 'Settings & Roles', href: '/settings' }
   ];

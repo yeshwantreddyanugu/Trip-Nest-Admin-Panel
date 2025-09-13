@@ -56,6 +56,7 @@ const VehicleManagement = () => {
   const [showViewModal, setShowViewModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
+  const [activeTab, setActiveTab] = useState<'2W' | '4W'>('2W');
   const [confirmDialog, setConfirmDialog] = useState<{
     show: boolean;
     title: string;
@@ -63,6 +64,13 @@ const VehicleManagement = () => {
     onConfirm: () => void;
   }>({ show: false, title: '', message: '', onConfirm: () => { } });
 
+  // Debug: Track vehicle state changes
+  React.useEffect(() => {
+    console.log('🔍 Vehicle state changed. Total vehicles:', vehicles.length);
+    console.log('🔍 Temp vehicles:', vehicles.filter(v => v.id.startsWith('temp-')).length);
+    console.log('🔍 Real vehicles:', vehicles.filter(v => !v.id.startsWith('temp-')).length);
+    console.log('🔍 Current vehicles:', vehicles.map(v => ({ name: v.name, id: v.id })));
+  }, [vehicles]);
 
   const fetchVehicles = async () => {
     try {
@@ -114,7 +122,6 @@ const VehicleManagement = () => {
         dateOfListing: new Date().toISOString().split('T')[0],
         revenue: Math.floor(Math.random() * 100000),
 
-        // ✅ New fields
         fuel: vehicle.fuel || 'Not specified',
         airConditioning: vehicle.airConditioning || 'Not specified',
         transmission: vehicle.transmission || 'Not specified',
@@ -132,14 +139,10 @@ const VehicleManagement = () => {
     }
   };
 
-
   // Fetch vehicles from API
   useEffect(() => {
-
-
     fetchVehicles();
   }, []);
-
 
   const handleAddVehicle = async (formData: FormData) => {
     try {
@@ -192,24 +195,54 @@ const VehicleManagement = () => {
         partnerId: parseInt(vehicleData.partnerId) || 1,
         status: vehicleData.status || 'Pending',
 
-        // ✅ New Fields
         fuel: vehicleData.fuel || 'Not specified',
         airConditioning: vehicleData.airConditioning || 'Not specified',
         transmission: vehicleData.transmission || 'Not specified',
         city: vehicleData.city || 'Unknown',
       };
 
-
       console.log('🧾 Prepared Vehicle Payload (to send):', vehiclePayload);
 
-      // Step 3: Prepare FormData again to send to backend
+      // Step 3: Create optimistic UI update - add vehicle to frontend immediately
+      const optimisticVehicle: Vehicle = {
+        id: `temp-${Date.now()}`, // Temporary ID
+        name: vehicleData.vehicleName,
+        vehicleNumber: vehicleData.vehicleNumber,
+        type: vehicleData.vehicleType,
+        category: ['Bike', 'Scooter'].includes(vehicleData.vehicleType) ? '2W' : '4W',
+        description: vehicleData.description || '',
+        mileage: vehicleData.mileage ? `${vehicleData.mileage} kmpl` : 'N/A',
+        images: vehicleData.previewUrl ? [vehicleData.previewUrl] : [],
+        thumbnail: vehicleData.previewUrl || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64',
+        pricing: {
+          hourly: parseInt(vehicleData.hourlyPrice) || 0,
+          daily: parseInt(vehicleData.dailyPrice) || 0,
+          weekly: parseInt(vehicleData.weeklyPrice) || 0,
+        },
+        availability: vehicleData.availability === 'Available' ? 'Available' : 'Not Available',
+        vendor: vehicleData.vendor || `Partner ${vehicleData.partnerId || 1}`,
+        status: vehicleData.status || 'Pending',
+        dateOfListing: new Date().toISOString().split('T')[0],
+        revenue: 0,
+        fuel: vehicleData.fuel || 'Not specified',
+        airConditioning: vehicleData.airConditioning || 'Not specified',
+        transmission: vehicleData.transmission || 'Not specified',
+        city: vehicleData.city || 'Unknown',
+      };
+
+      // Add to frontend immediately (optimistic update)
+      console.log('🚀 Adding vehicle optimistically to frontend...');
+      setVehicles(prev => [optimisticVehicle, ...prev]);
+      setShowAddModal(false);
+      toast.success('✅ Vehicle added locally, saving to backend...');
+
+      // Step 4: Prepare FormData and send to backend
       const payloadFormData = new FormData();
       payloadFormData.append('vehicle', JSON.stringify(vehiclePayload));
       if (vehicleData.imageFile) {
         payloadFormData.append('image', vehicleData.imageFile);
       }
 
-      // Step 4: Send POST request
       console.log('📡 POSTing to backend:', API_BASE_URL);
       const response = await fetch(API_BASE_URL, {
         method: 'POST',
@@ -219,70 +252,99 @@ const VehicleManagement = () => {
         }
       });
 
-      console.log('📨 Response status:', response.status);
+      console.log('📨 Backend Response Status:', response.status);
+      console.log('📨 Backend Response Status Text:', response.statusText);
 
       let result;
       try {
         result = await response.json();
       } catch (err) {
         console.error('❌ Failed to parse JSON from backend:', err);
+        // Remove optimistic update on error
+        setVehicles(prev => prev.filter(v => v.id !== optimisticVehicle.id));
         toast.error('Backend response unreadable');
         return;
       }
 
       console.log('📥 Full backend response:', result);
 
-      const newVehicleData = result.data;
-      if (!newVehicleData || !newVehicleData.id) {
-        console.error('❌ No valid vehicle data returned:', newVehicleData);
-        toast.error(result.message || 'Invalid server response');
-        return;
+      // Check for successful response (status 200-299)
+      if (response.ok && response.status >= 200 && response.status < 300) {
+        console.log('✅ SUCCESS: Vehicle creation returned status', response.status);
+        
+        const newVehicleData = result.data;
+        if (!newVehicleData || !newVehicleData.id) {
+          console.error('❌ No valid vehicle data returned:', newVehicleData);
+          // Remove optimistic update on error
+          setVehicles(prev => prev.filter(v => v.id !== optimisticVehicle.id));
+          toast.error(result.message || 'Invalid server response');
+          return;
+        }
+
+        // Step 5: Replace optimistic update with real data from backend
+        const realVehicle: Vehicle = {
+          id: newVehicleData.id.toString(),
+          name: newVehicleData.vehicleName,
+          vehicleNumber: newVehicleData.vehicleNumber,
+          type: newVehicleData.vehicleType,
+          category: ['Bike', 'Scooter'].includes(newVehicleData.vehicleType) ? '2W' : '4W',
+          description: newVehicleData.description || '',
+          mileage: newVehicleData.mileage ? `${newVehicleData.mileage} kmpl` : 'N/A',
+          images: newVehicleData.url ? [newVehicleData.url] : [],
+          thumbnail:
+            newVehicleData.url ||
+            'https://images.unsplash.com/photo-1558618666-fcd25c85cd64',
+          pricing: {
+            hourly: newVehicleData.hourlyPrice,
+            daily: newVehicleData.dailyPrice || 0,
+            weekly: newVehicleData.weeklyPrice || 0
+          },
+          availability: newVehicleData.available ? 'Available' : 'Not Available',
+          vendor: `Partner ${newVehicleData.partnerId}`,
+          status: newVehicleData.status,
+          dateOfListing: new Date().toISOString().split('T')[0],
+          revenue: Math.floor(Math.random() * 100000),
+          fuel: newVehicleData.fuel || 'Not specified',
+          airConditioning: newVehicleData.airConditioning || 'Not specified',
+          transmission: newVehicleData.transmission || 'Not specified',
+          city: newVehicleData.city || 'Unknown',
+        };
+
+        console.log('📊 Final frontend vehicle object:', realVehicle);
+
+        // Replace optimistic update with real data
+        setVehicles(prev => prev.map(v => v.id === optimisticVehicle.id ? realVehicle : v));
+        console.log('✅ Optimistic update replaced with real backend data');
+        toast.success('✅ Vehicle saved to backend successfully!');
+
+        // 🔄 TRIGGER PAGE RELOAD AFTER 2 SECONDS
+        console.log('⏰ Scheduling page reload in 2 seconds...');
+        toast.success('🔄 Page will reload in 2 seconds to refresh data...');
+        
+        setTimeout(() => {
+          console.log('🔄 Executing page reload now...');
+          window.location.reload();
+        }, 1000);
+
+      } else {
+        // Handle non-2xx status codes
+        console.error('❌ Backend returned error status:', response.status, response.statusText);
+        console.error('❌ Error response data:', result);
+        
+        // Remove optimistic update on error
+        setVehicles(prev => prev.filter(v => v.id !== optimisticVehicle.id));
+        
+        const errorMessage = result?.message || result?.error || `Server error: ${response.status} ${response.statusText}`;
+        toast.error(`Failed to save vehicle: ${errorMessage}`);
       }
 
-      // Step 5: Transform backend vehicle to frontend format
-      const newVehicle: Vehicle = {
-        id: newVehicleData.id.toString(),
-        name: newVehicleData.vehicleName,
-        vehicleNumber: newVehicleData.vehicleNumber,
-        type: newVehicleData.vehicleType,
-        category: ['Bike', 'Scooter'].includes(newVehicleData.vehicleType) ? '2W' : '4W',
-        description: newVehicleData.description || '',
-        mileage: newVehicleData.mileage ? `${newVehicleData.mileage} kmpl` : 'N/A',
-        images: newVehicleData.url ? [newVehicleData.url] : [],
-        thumbnail:
-          newVehicleData.url ||
-          'https://images.unsplash.com/photo-1558618666-fcd25c85cd64',
-        pricing: {
-          hourly: newVehicleData.hourlyPrice,
-          daily: newVehicleData.dailyPrice || 0,
-          weekly: newVehicleData.weeklyPrice || 0
-        },
-        availability: newVehicleData.available ? 'Available' : 'Not Available',
-        vendor: `Partner ${newVehicleData.partnerId}`,
-        status: newVehicleData.status,
-        dateOfListing: new Date().toISOString().split('T')[0],
-        revenue: Math.floor(Math.random() * 100000),
-        fuel: newVehicleData.fuel || 'Not specified',
-        airConditioning: newVehicleData.airConditioning || 'Not specified',
-        transmission: newVehicleData.transmission || 'Not specified',
-        city: newVehicleData.city || 'Unknown',
-      };
-
-      console.log('📊 Final frontend vehicle object:', newVehicle);
-
-      // Step 6: Update UI
-      setVehicles(prev => [...prev, newVehicle]);
-      setShowAddModal(false);
-      toast.success('✅ Vehicle added successfully');
     } catch (error) {
       console.error('🔥 Exception during vehicle creation:', error);
+      // Remove optimistic update on error
+      setVehicles(prev => prev.filter(v => !v.id.startsWith('temp-')));
       toast.error(error instanceof Error ? error.message : 'Failed to add vehicle');
     }
   };
-
-
-
-
 
   const handleEditVehicle = async (formData: FormData) => {
     if (!selectedVehicle) return;
@@ -321,7 +383,7 @@ const VehicleManagement = () => {
 
       // Step 2: Construct payload with ID
       const vehiclePayload = {
-        id: vehicleData.id, // ✅ Include ID for update
+        id: vehicleData.id,
         vehicleName: vehicleData.vehicleName || '',
         vehicleNumber: vehicleData.vehicleNumber || '',
         vehicleType: vehicleData.vehicleType || '',
@@ -407,7 +469,7 @@ const VehicleManagement = () => {
         vehicle.id === selectedVehicle.id ? updatedVehicle : vehicle
       );
 
-      await fetchVehicles();
+      setVehicles(updatedVehicles);
       setShowEditModal(false);
       setSelectedVehicle(null);
       toast.success('✅ Vehicle updated successfully');
@@ -416,9 +478,6 @@ const VehicleManagement = () => {
       toast.error(error instanceof Error ? error.message : 'Failed to update vehicle');
     }
   };
-
-
-
 
   const handleStatusChange = async (vehicleId: string, newStatus: 'Approved' | 'Rejected') => {
     try {
@@ -509,7 +568,7 @@ const VehicleManagement = () => {
             </div>
           </div>
 
-          <Tabs defaultValue="2W" className="w-full">
+          <Tabs defaultValue="2W" className="w-full" onValueChange={(value) => setActiveTab(value as '2W' | '4W')}>
             <TabsList className="grid w-full grid-cols-2 max-w-md">
               <TabsTrigger value="2W" className="flex items-center gap-2">
                 2-Wheelers ({twoWheelers.length})
@@ -613,6 +672,7 @@ const VehicleManagement = () => {
             <VehicleFormModal
               onClose={() => setShowAddModal(false)}
               onSubmit={handleAddVehicle}
+              vehicleCategory={activeTab}
             />
           )}
 
@@ -624,6 +684,7 @@ const VehicleManagement = () => {
                 setSelectedVehicle(null);
               }}
               onSubmit={handleEditVehicle}
+              vehicleCategory={selectedVehicle.category}
             />
           )}
 
