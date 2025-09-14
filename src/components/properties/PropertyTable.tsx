@@ -192,7 +192,7 @@ const PropertyTable: React.FC<PropertyTableProps> = ({
                   >
                     <Edit size={16} />
                   </Button>
-                  <Button
+                  {/* <Button
                     variant="outline"
                     size="icon"
                     onClick={() =>
@@ -202,7 +202,7 @@ const PropertyTable: React.FC<PropertyTableProps> = ({
                       } flex items-center`}
                   >
                     <div className="w-[14px] h-[14px] bg-white rounded-full shadow-md transition-transform duration-300" />
-                  </Button>
+                  </Button> */}
 
 
 
@@ -210,7 +210,7 @@ const PropertyTable: React.FC<PropertyTableProps> = ({
 
                   {property.status === 'Pending' && (
                     <>
-                      <Button
+                      {/* <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => setConfirmDialog({ type: 'approve', property })}
@@ -225,7 +225,7 @@ const PropertyTable: React.FC<PropertyTableProps> = ({
                         className="text-red-600 hover:text-red-700"
                       >
                         <X size={16} />
-                      </Button>
+                      </Button> */}
                     </>
                   )}
                   <Button

@@ -16,7 +16,10 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
-  CalendarDays
+  CalendarDays,
+  CheckCircle,
+  XCircle,
+  AlertCircle
 } from 'lucide-react';
 
 const BASE_URL = 'https://hbr.lytortech.com';
@@ -83,6 +86,7 @@ const FarmCommission = () => {
   const [totalCommissionInRange, setTotalCommissionInRange] = useState<number>(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [toast, setToast] = useState<{type: 'success' | 'error' | 'info', message: string} | null>(null);
   
   // Filters and pagination
   const [currentPage, setCurrentPage] = useState(0);
@@ -98,7 +102,13 @@ const FarmCommission = () => {
 
   const pageSize = 10;
 
-  // API calls
+  // Toast utility
+  const showToast = (type: 'success' | 'error' | 'info', message: string) => {
+    setToast({ type, message });
+    setTimeout(() => setToast(null), 4000);
+  };
+
+  // API calls with improved error handling
   const fetchBookings = async (page = 0, status = statusFilter) => {
     console.log(`[INFO] Fetching farm bookings - Page: ${page}, Status: ${status}`);
     setLoading(true);
@@ -123,20 +133,44 @@ const FarmCommission = () => {
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        throw new Error(`HTTP error! status: ${response.status} - ${response.statusText}`);
       }
 
-      const data: FarmBookingResponse = await response.json();
+      const data = await response.json();
       console.log('[SUCCESS] Farm bookings data loaded:', data);
       
-      setBookings(data.content);
-      setTotalPages(data.totalPages);
-      setTotalElements(data.totalElements);
-      setCurrentPage(data.pageable.pageNumber);
+      // Handle different response formats
+      if (data.content) {
+        // Paginated response
+        setBookings(data.content || []);
+        setTotalPages(data.totalPages || 1);
+        setTotalElements(data.totalElements || 0);
+        setCurrentPage(data.pageable?.pageNumber || page);
+      } else if (Array.isArray(data)) {
+        // Direct array response
+        setBookings(data);
+        setTotalPages(1);
+        setTotalElements(data.length);
+        setCurrentPage(0);
+      } else {
+        // Single item response
+        setBookings([data]);
+        setTotalPages(1);
+        setTotalElements(1);
+        setCurrentPage(0);
+      }
       
-    } catch (err) {
+      showToast('success', `Loaded ${data.content?.length || data.length || 0 } bookings for ${status} status`);
+      
+    } catch (err: any) {
       console.error('[ERROR] Failed to load farm bookings:', err);
-      setError('Failed to load farm bookings data');
+      const errorMessage = `Failed to load farm bookings: ${err.message}`;
+      setError(errorMessage);
+      showToast('error', errorMessage);
+      // Reset bookings on error
+      setBookings([]);
+      setTotalPages(0);
+      setTotalElements(0);
     } finally {
       setLoading(false);
     }
@@ -165,9 +199,11 @@ const FarmCommission = () => {
       const data: Statistics = await response.json();
       console.log('[SUCCESS] Statistics loaded:', data);
       setStatistics(data);
+      showToast('success', 'Statistics updated successfully');
       
-    } catch (err) {
+    } catch (err: any) {
       console.error('[ERROR] Failed to load statistics:', err);
+      showToast('error', 'Failed to load statistics: ' + err.message);
     }
   };
 
@@ -193,10 +229,11 @@ const FarmCommission = () => {
 
       const data = await response.json();
       console.log('[SUCCESS] Total commission loaded:', data);
-      setTotalCommissionInRange(data.totalCommission);
+      setTotalCommissionInRange(data.totalCommission || 0);
       
-    } catch (err) {
+    } catch (err: any) {
       console.error('[ERROR] Failed to load total commission:', err);
+      showToast('error', 'Failed to load total commission: ' + err.message);
     }
   };
 
@@ -222,18 +259,21 @@ const FarmCommission = () => {
       setSelectedBooking(data);
       setShowModal(true);
       
-    } catch (err) {
+    } catch (err: any) {
       console.error('[ERROR] Failed to load booking details:', err);
-      setError('Failed to load booking details');
+      showToast('error', 'Failed to load booking details: ' + err.message);
     }
   };
 
   // Effects
   useEffect(() => {
+    console.log(`[INFO] Status filter changed to: ${statusFilter}`);
+    setCurrentPage(0); // Reset to first page when filter changes
     fetchBookings(0, statusFilter);
   }, [statusFilter]);
 
   useEffect(() => {
+    console.log(`[INFO] Date range changed: ${startDate} to ${endDate}`);
     fetchStatistics();
     fetchTotalCommission();
   }, [startDate, endDate]);
@@ -299,7 +339,10 @@ const FarmCommission = () => {
         <div className="flex-1 flex flex-col">
           <Navbar />
           <main className="flex-1 p-6 flex items-center justify-center">
-            <p>Loading farm commission data...</p>
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <p>Loading farm commission data...</p>
+            </div>
           </main>
         </div>
       </div>
@@ -474,13 +517,34 @@ const FarmCommission = () => {
                 <CardTitle>Farm Bookings List</CardTitle>
                 <p className="text-sm text-gray-600">
                   Showing {bookings.length} of {totalElements} bookings
+                  {statusFilter !== 'ALL' && ` (${statusFilter} status)`}
                 </p>
               </CardHeader>
               <CardContent>
                 {loading && <div className="text-center py-4">Loading...</div>}
-                {error && <div className="text-center py-4 text-red-600">{error}</div>}
                 
-                {!loading && !error && (
+                {error && (
+                  <div className="text-center py-8">
+                    <div className="text-red-600 mb-4">{error}</div>
+                    <Button onClick={() => fetchBookings(currentPage, statusFilter)}>
+                      Retry
+                    </Button>
+                  </div>
+                )}
+                
+                {!loading && !error && bookings.length === 0 && (
+                  <div className="text-center py-8">
+                    <p className="text-gray-500 mb-4">No bookings found for the selected filter: {statusFilter}</p>
+                    <Button 
+                      variant="outline"
+                      onClick={() => setStatusFilter('ALL')}
+                    >
+                      Show All Bookings
+                    </Button>
+                  </div>
+                )}
+                
+                {!loading && !error && bookings.length > 0 && (
                   <>
                     <div className="overflow-x-auto">
                       <table className="w-full border-collapse">
@@ -691,6 +755,37 @@ const FarmCommission = () => {
                       <div className="text-sm font-mono bg-gray-50 p-2 rounded break-all">{selectedBooking.paymentSignature}</div>
                     </div>
                   </div>
+                </div>
+              </div>
+            )}
+
+            {/* Toast Notifications */}
+            {toast && (
+              <div className="fixed top-4 right-4 z-50">
+                <div className={`
+                  flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg border-l-4 min-w-80 max-w-md
+                  transform transition-all duration-300 ease-in-out
+                  ${toast.type === 'success' 
+                    ? 'bg-green-50 border-green-500 text-green-800' 
+                    : toast.type === 'error'
+                    ? 'bg-red-50 border-red-500 text-red-800'
+                    : 'bg-blue-50 border-blue-500 text-blue-800'
+                  }
+                `}>
+                  <div className="flex-shrink-0">
+                    {toast.type === 'success' && <CheckCircle className="w-5 h-5 text-green-500" />}
+                    {toast.type === 'error' && <XCircle className="w-5 h-5 text-red-500" />}
+                    {toast.type === 'info' && <AlertCircle className="w-5 h-5 text-blue-500" />}
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium">{toast.message}</p>
+                  </div>
+                  <button
+                    onClick={() => setToast(null)}
+                    className="flex-shrink-0 p-1 rounded-full hover:bg-black hover:bg-opacity-10"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
                 </div>
               </div>
             )}
