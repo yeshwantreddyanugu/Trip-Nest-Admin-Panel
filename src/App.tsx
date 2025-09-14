@@ -11,8 +11,9 @@ import VehicleManagement from "./pages/VehicleManagement";
 import BookingManagement from "./pages/BookingManagement";
 import CommissionEarnings from "./pages/CommissionEarnings";
 import NotFound from "./pages/NotFound";
-import FarmsPage from "./pages/FarmsPage"
-import FarmCommssions from "./pages/FarmCommssions"
+import FarmsPage from "./pages/FarmsPage";
+import FarmCommssions from "./pages/FarmCommssions";
+import Settings from "./pages/Settings";
 
 
 // Import new auth components
@@ -68,6 +69,7 @@ const App: React.FC = () => {
                 <Route path="/commission" element={<CommissionEarnings />} />
                 <Route path="/farms" element={<FarmsPage />} />
                 <Route path="/farmCommissions" element={<FarmCommssions />} />
+                <Route path="/settings" element={<Settings />} />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
               </Routes>

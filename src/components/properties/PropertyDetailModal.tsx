@@ -338,12 +338,12 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                 >
                   Rooms ({rooms.length})
                 </Button>
-                <Button
+                {/* <Button
                   variant={activeTab === 'bookings' ? 'default' : 'ghost'}
                   onClick={() => setActiveTab('bookings')}
                 >
                   Recent Bookings ({bookings.length})
-                </Button>
+                </Button> */}
               </div>
 
               {activeTab === 'rooms' && (

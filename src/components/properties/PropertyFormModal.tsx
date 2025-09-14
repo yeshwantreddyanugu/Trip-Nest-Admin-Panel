@@ -542,7 +542,7 @@ const PropertyFormModal: React.FC<PropertyFormModalProps> = ({
           </div>
 
           <div className="space-y-4">
-            <Label htmlFor="thumbnail">Property Images {!property && '*'}</Label>
+            <Label htmlFor="thumbnail"> Thumbnail Image {!property && '*'}</Label>
 
             {imagePreviews && imagePreviews.length > 0 && (
               <div className="space-y-3">
@@ -606,7 +606,7 @@ const PropertyFormModal: React.FC<PropertyFormModalProps> = ({
             <p className="text-sm text-gray-500">
               {property
                 ? "Select new images to replace existing ones (optional)"
-                : "Select one or more images for the property"
+                : "Select only one image for the property thumbnail"
               }
             </p>
           </div>

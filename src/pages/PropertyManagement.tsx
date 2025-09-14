@@ -219,14 +219,27 @@ const PropertyManagement = () => {
 
   const handleToggleApproval = async (propertyId: string, approved: boolean) => {
     try {
-      await axios.put(`${API_BASE_URL}/${propertyId}/approval-toggle`, {
-        approved
-      }, {
-        headers: {
-          'Content-Type': 'application/json',
-          'ngrok-skip-browser-warning': 'true'
+      // Log BEFORE toggle (current state)
+      console.log(`Property ${propertyId} current status: ${!approved}`);
+
+      // Log AFTER toggle (new state you are sending to backend)
+      console.log(`Property ${propertyId} new status (sending): ${approved}`);
+
+      const response = await axios.patch(
+        `${API_BASE_URL}/${propertyId}/availability`,
+        null, // no body, backend expects query param
+        {
+          params: { status: approved }, // match @RequestParam
+          headers: {
+            'ngrok-skip-browser-warning': 'true'
+          }
         }
-      });
+      );
+
+      // Log backend response
+      console.log(
+        `Response for property ${propertyId}: statusCode=${response.status}, statusText=${response.statusText}`
+      );
 
       toast.success(`Property ${approved ? 'approved' : 'disapproved'} successfully!`);
       fetchProperties(); // refresh table
@@ -235,6 +248,9 @@ const PropertyManagement = () => {
       toast.error('Failed to toggle approval status');
     }
   };
+
+
+
 
 
   const handleDeleteProperty = async (propertyId: string) => {
