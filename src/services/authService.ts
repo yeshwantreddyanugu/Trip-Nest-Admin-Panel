@@ -1,5 +1,5 @@
 // src/services/authService.ts
-const BASE_URL = 'https://e9ce92ee0f8f.ngrok-free.app/api/property-login';
+const BASE_URL = 'https://hbr.lytortech.com/api/property-login';
 
 interface OTPSendResponse {
   message: string;
