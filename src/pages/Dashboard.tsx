@@ -153,12 +153,12 @@ const Dashboard = () => {
           {/* Main Content Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Recent Activity - Takes 2 columns */}
-            <div className="lg:col-span-2">
+            {/* <div className="lg:col-span-2">
               <RecentActivity activities={stats.recentActivities} />
-            </div>
+            </div> */}
 
             {/* Additional cards can be added here */}
-            <div className="lg:col-span-1">
+            {/* <div className="lg:col-span-1">
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -179,7 +179,7 @@ const Dashboard = () => {
                   </div>
                 </CardContent>
               </Card>
-            </div>
+            </div> */}
           </div>
         </main>
       </div>
